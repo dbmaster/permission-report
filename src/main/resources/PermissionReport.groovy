@@ -294,16 +294,6 @@ logger.info("done")
                                 
                                 def ldap_account = ldapAccountByName[principal.principal_name]
                                 principal.ldap_account = ldap_account
-                                //if (ldapAccount!=null) {
-                                //    def groups = getSubGroups([], ldapAccount);
-                                //     groups.each { group ->
-                                //       def fullName = domain + "\\" + group;
-                                        // if (userMap[fullName]!=null) {
-                                        //    principal.linkAccount(fullName);
-                                        //    userMap[fullName].linkAccount(principal.principal_name);
-                                        //}
-                                //    }
-                                //}
                             }
                         }
                     }
