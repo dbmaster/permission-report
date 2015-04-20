@@ -1,0 +1,2 @@
+http://sqlstudies.com/free-scripts/sp_dbpermissions/
+http://sqlstudies.com/free-scripts/sp_srvpermissions/

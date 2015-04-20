@@ -1,0 +1,13 @@
+<tools>
+    <tool id="permission-report" title="Permission Report" projectTypes="inventory">
+        <description></description>
+
+        <parameters>
+            <parameter name="p_servers"   title="Servers"   type="string" required="false" multiple="true"
+                       suggestion="project_connections" width="300" />
+
+        </parameters>
+
+        <output  script="permission-report.groovy" type="html" />
+    </tool>
+</tools>
