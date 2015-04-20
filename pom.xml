@@ -6,7 +6,6 @@
     <artifactId>permission-report</artifactId>
 
     <name>Permission Report</name>
-    <description>TODO</description>
 
     <version>0.0.1</version>
     <packaging>bundle</packaging>
@@ -36,7 +35,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Tags>inventory,sqlserver,audit,security</Tags>
+                        <Tags>inventory,sqlserver,security</Tags>
                         <Author>slava.christin</Author>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Import-Package>io.dbmaster.api;version="1.9.0",!org.slf4j.*,io.dbmaster.tools.ldap;version="1.0.4"</Import-Package>
