@@ -47,7 +47,6 @@ public class PermissionReport {
     }
      
     public void loadLdapAccounts(connectionSrv) {
-    /*
         def ldapConns = connectionSrv.getConnectionList().findAll { it.driver=="ldap" }
         ldapConns.each { connection->
             logger.info("Loading users and group from  ${connection.name}")
@@ -107,7 +106,7 @@ public class PermissionReport {
                 ldapAccountByName[domain+"\\"+name] = account
             }
         }
-     */
+     /*
         def xs = new com.thoughtworks.xstream.XStream()
         
           

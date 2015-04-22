@@ -10,4 +10,15 @@
 
         <output  script="permission-report.groovy" type="html" />
     </tool>
+
+    <tool id="group-members" title="Group members" projectTypes="inventory">
+        <description></description>
+
+        <parameters>
+            <parameter name="p_groups" title="Group Names (One per line)" type="text" required="true" width="60" />
+        </parameters>
+
+        <output  script="group-members.groovy" type="html" />
+    </tool>
+
 </tools>

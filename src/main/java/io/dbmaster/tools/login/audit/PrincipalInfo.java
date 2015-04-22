@@ -16,12 +16,4 @@ public class PrincipalInfo implements java.io.Serializable {
         Set db_roles = new HashSet();
         Object ldap_account;
         
-        
-        
-        public synchronized void linkAccount(String account) {
-            if (linked_accounts==null) {
-                linked_accounts = new HashSet<String>();
-            }
-            linked_accounts.add(account);
-        }
 }
