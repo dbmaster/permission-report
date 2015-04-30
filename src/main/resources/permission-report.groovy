@@ -36,7 +36,7 @@ def printMembers (report, account, level ) {
     }
 
     account.members.each { member_dn ->
-        def member = report.ldapAccountByDN[member_dn]
+        def member = report.ldap.ldapAccountByDN[member_dn]
         if (member == null) {
             logger.debug("Account for ${member_dn} does not exist")
         } else {
