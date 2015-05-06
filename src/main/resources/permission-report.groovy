@@ -54,7 +54,7 @@ result.each { principal ->
     println "<td>${principal.disabled == null ? "" : (principal.disabled ? "disabled" : "enabled" )}</td>"
     println "<td>${getNotNull(principal.principal_type)}</td>"
     println "<td>${principal.server_roles.join("<br/>")}</td>"
-    println "<td>${principal.db_roles.collect { it.db+":"+it.role }.join("<br/>")}</td>"
+    println "<td>${principal.db_roles.collect { it.db+":"+it.role }.sort { it }.join("<br/>")}</td>"
     if (principal.ldap_account!=null) {
         println """<td>Title: ${principal.ldap_account.title}<br/>
                        Disabled: ${principal.ldap_account.disabled}
