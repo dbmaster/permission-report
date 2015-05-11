@@ -9,7 +9,7 @@ public class PermissionReportIT extends BaseToolTestNGCase {
 
     @Test
     public void test() {
-        def parameters = [ ] 
+        def parameters = [:] 
                           // "p_database"     :  getTestProperty("p_database"),
                           // "p_search_terms" :  getTestProperty("p_search_terms"),
                           // "p_max_rows"     :  Integer.valueOf(getTestProperty("p_max_rows"))  ]
