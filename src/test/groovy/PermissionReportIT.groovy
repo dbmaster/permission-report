@@ -5,7 +5,7 @@ import org.testng.annotations.Test
 import com.branegy.tools.api.ExportType;
 
 
-public class PermissionReportTest extends BaseToolTestNGCase {
+public class PermissionReportIT extends BaseToolTestNGCase {
 
     @Test
     public void test() {
