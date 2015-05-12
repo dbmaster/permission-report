@@ -1,9 +1,6 @@
-import io.dbmaster.testng.BaseToolTestNGCase;
-
+import io.dbmaster.testng.BaseToolTestNGCase
 import org.testng.annotations.Test
-
-import com.branegy.tools.api.ExportType;
-
+import com.branegy.tools.api.ExportType
 
 public class PermissionReportIT extends BaseToolTestNGCase {
 
