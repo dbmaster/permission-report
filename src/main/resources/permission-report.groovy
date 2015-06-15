@@ -19,8 +19,8 @@ println "<td>Principal Status</td>"
 println "<td>Type</td>"
 println "<td>Server Roles</td>"
 println "<td>Database Permissions</td>"
-println "<td>LDAP Info</td>"
-println "<td>SubGroups</td>"
+println "<td>Account Info</td>"
+println "<td>Members</td>"
 println "</tr>"
 
 def report =new PermissionReport(dbm, logger)
@@ -47,6 +47,37 @@ def printMembers (report, account, level ) {
     }
 }
 
+def printAccountStatus(status) {
+    if (status==null) {
+        return
+    } else {
+        // TODO add descriptions: https://support.microsoft.com/en-us/kb/305144
+        def status2 = Long.parseLong(status)
+        if ((status2  & 0x0001)> 0 ) { print "SCRIPT<br/>" }
+        if ((status2  & 0x0002) >0 ) { print "ACCOUNTDISABLE<br/>" }
+        if ((status2  & 0x0008) >0 ) { print "HOMEDIR_REQUIRED<br/>" }
+        if ((status2  & 0x0010) >0 ) { print "LOCKOUT<br/>" }
+        if ((status2  & 0x0020) >0 ) { print "PASSWD_NOTREQD<br/>" }
+        if ((status2  & 0x0040) >0 ) { print "PASSWD_CANT_CHANGE<br/>" }
+        if ((status2  & 0x0080) >0 ) { print "ENCRYPTED_TEXT_PWD_ALLOWED<br/>" }
+        if ((status2  & 0x1000) >0 ) { print "TEMP_DUPLICATE_ACCOUNT<br/>" }
+        if ((status2  & 0x0200) >0 ) { print "NORMAL_ACCOUNT<br/>" }
+        if ((status2  & 0x0800) >0 ) { print "INTERDOMAIN_TRUST_ACCOUNT<br/>" }
+        if ((status2  & 0x1000) >0 ) { print "WORKSTATION_TRUST_ACCOUNT<br/>" }
+        if ((status2  & 0x2000) >0 ) { print "SERVER_TRUST_ACCOUNT<br/>" }
+        if ((status2  & 0x10000) >0 ) { print "DONT_EXPIRE_PASSWORD<br/>" }
+        if ((status2  & 0x20000) >0 ) { print "MNS_LOGON_ACCOUNT<br/>" }
+        if ((status2  & 0x40000) >0 ) { print "SMARTCARD_REQUIRED<br/>" }
+        if ((status2  & 0x80000) >0 ) { print "TRUSTED_FOR_DELEGATION<br/>" }
+        if ((status2  & 0x100000) >0 ) { print "NOT_DELEGATED<br/>" }
+        if ((status2  & 0x200000) >0 ) { print "USE_DES_KEY_ONLY<br/>" }
+        if ((status2  & 0x400000) >0 ) { print "DONT_REQ_PREAUTH<br/>" }
+        if ((status2  & 0x800000) >0 ) { print "PASSWORD_EXPIRED<br/>" }
+        if ((status2  & 0x1000000) >0 ) { print "TRUSTED_TO_AUTH_FOR_DELEGATION<br/>" }
+        if ((status2  & 0x04000000) >0 ) { print "PARTIAL_SECRETS_ACCOUNT<br/>" }
+    }
+}
+
 result.each { principal ->
     println "<tr valign=\"top\">"
     println "<td>${principal.connection_name}</td>"    
@@ -56,10 +87,13 @@ result.each { principal ->
     println "<td>${principal.server_roles.join("<br/>")}</td>"
     println "<td>${principal.db_roles.collect { it.db+":"+it.role }.sort { it }.join("<br/>")}</td>"
     if (principal.ldap_account!=null) {
-        println """<td>Title: ${principal.ldap_account.title}<br/>
-                       Disabled: ${principal.ldap_account.disabled}
-                </td>"""
-                
+    
+        print """<td>Title: ${principal.ldap_account.title}<br/>"""
+        if (principal.ldap_account.disabled!=null) {
+            println "Account Status:<br/>"
+            printAccountStatus(principal.ldap_account.disabled)
+        }
+        
         println "<td>"
         printMembers(report, principal.ldap_account, 0)
         println "</td>"        
