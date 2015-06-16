@@ -38,7 +38,7 @@
                         <Tags>inventory,sqlserver,security</Tags>
                         <Author>slava.christin</Author>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
-                        <Import-Package>io.dbmaster.api;version="1.9.0",!org.slf4j.*,io.dbmaster.tools.ldap;version="1.0.5"</Import-Package>
+                        <Import-Package>io.dbmaster.api;version="1.9.0",!org.slf4j.*,io.dbmaster.tools;version="0.1.0"</Import-Package>
                     </instructions>
                 </configuration>
             </plugin>

@@ -1,5 +1,6 @@
 import groovy.json.StringEscapeUtils
 import groovy.sql.Sql
+
 import io.dbmaster.tools.login.audit.*
 
 import java.sql.Connection
@@ -9,7 +10,6 @@ import java.util.concurrent.CancellationException
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
-import io.dbmaster.tools.ldap.LdapSearch
 
 import javax.naming.*
 import javax.naming.directory.*
@@ -30,13 +30,14 @@ import com.branegy.dbmaster.util.NameMap
 import com.branegy.scripting.DbMaster
 import com.branegy.service.connection.api.ConnectionService
 import com.branegy.service.core.QueryRequest
-import io.dbmaster.tools.ldap.LdapUserCache
+
+import io.dbmaster.tools.LdapSearch
+import io.dbmaster.tools.LdapUserCache
 
 public class PermissionReport { 
     
     private DbMaster dbm
     private Logger logger
-    public  Date since
     java.sql.Timestamp processTime = new java.sql.Timestamp(new Date().getTime())
     
     public LdapUserCache ldap
@@ -197,10 +198,6 @@ public class PermissionReport {
                     //    throw new CancellationException();
                     //}
                 connection.close()
-                
-                // calculate 
-          
-                        
             } catch (CancellationException e) {
                 throw e;
             } catch (Exception e) {

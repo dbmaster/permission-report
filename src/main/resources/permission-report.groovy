@@ -40,8 +40,8 @@ def printMembers (report, account, level ) {
         if (member == null) {
             logger.debug("Account for ${member_dn} does not exist")
         } else {
-            println  StringUtils.repeat("&nbsp;&nbsp;", level*2) +
-                     printAttr("name", member.title)+" " + printAttr("sAMAccountName",member.name)+"<br/>";
+            print   StringUtils.repeat("&nbsp;&nbsp;", level*2)
+            println """${member.title} (${member.domain}\\${member.name})</span><br/>"""
             printMembers(report, member, level+1)
         }
     }
@@ -53,28 +53,28 @@ def printAccountStatus(status) {
     } else {
         // TODO add descriptions: https://support.microsoft.com/en-us/kb/305144
         def status2 = Long.parseLong(status)
-        if ((status2  & 0x0001)> 0 ) { print "SCRIPT<br/>" }
-        if ((status2  & 0x0002) >0 ) { print "ACCOUNTDISABLE<br/>" }
-        if ((status2  & 0x0008) >0 ) { print "HOMEDIR_REQUIRED<br/>" }
-        if ((status2  & 0x0010) >0 ) { print "LOCKOUT<br/>" }
-        if ((status2  & 0x0020) >0 ) { print "PASSWD_NOTREQD<br/>" }
-        if ((status2  & 0x0040) >0 ) { print "PASSWD_CANT_CHANGE<br/>" }
-        if ((status2  & 0x0080) >0 ) { print "ENCRYPTED_TEXT_PWD_ALLOWED<br/>" }
-        if ((status2  & 0x1000) >0 ) { print "TEMP_DUPLICATE_ACCOUNT<br/>" }
-        if ((status2  & 0x0200) >0 ) { print "NORMAL_ACCOUNT<br/>" }
-        if ((status2  & 0x0800) >0 ) { print "INTERDOMAIN_TRUST_ACCOUNT<br/>" }
-        if ((status2  & 0x1000) >0 ) { print "WORKSTATION_TRUST_ACCOUNT<br/>" }
-        if ((status2  & 0x2000) >0 ) { print "SERVER_TRUST_ACCOUNT<br/>" }
-        if ((status2  & 0x10000) >0 ) { print "DONT_EXPIRE_PASSWORD<br/>" }
-        if ((status2  & 0x20000) >0 ) { print "MNS_LOGON_ACCOUNT<br/>" }
-        if ((status2  & 0x40000) >0 ) { print "SMARTCARD_REQUIRED<br/>" }
-        if ((status2  & 0x80000) >0 ) { print "TRUSTED_FOR_DELEGATION<br/>" }
-        if ((status2  & 0x100000) >0 ) { print "NOT_DELEGATED<br/>" }
-        if ((status2  & 0x200000) >0 ) { print "USE_DES_KEY_ONLY<br/>" }
-        if ((status2  & 0x400000) >0 ) { print "DONT_REQ_PREAUTH<br/>" }
-        if ((status2  & 0x800000) >0 ) { print "PASSWORD_EXPIRED<br/>" }
-        if ((status2  & 0x1000000) >0 ) { print "TRUSTED_TO_AUTH_FOR_DELEGATION<br/>" }
-        if ((status2  & 0x04000000) >0 ) { print "PARTIAL_SECRETS_ACCOUNT<br/>" }
+        if ((status2  & 0x0001)> 0 ) { print "Script<br/>" }
+        if ((status2  & 0x0002) >0 ) { print "Account disabled<br/>" }
+        if ((status2  & 0x0008) >0 ) { print "Homedir required<br/>" }
+        if ((status2  & 0x0010) >0 ) { print "Lockout<br/>" }
+        if ((status2  & 0x0020) >0 ) { print "Password not required<br/>" }
+        if ((status2  & 0x0040) >0 ) { print "Cannot change password<br/>" }
+        if ((status2  & 0x0080) >0 ) { print "Ecrypted password allowed<br/>" }
+        if ((status2  & 0x1000) >0 ) { print "Temp duplicated account<br/>" }
+        if ((status2  & 0x0200) >0 ) { print "Normal Account<br/>" }
+        if ((status2  & 0x0800) >0 ) { print "Interdomain trust account<br/>" }
+        if ((status2  & 0x1000) >0 ) { print "Workstation trust account<br/>" }
+        if ((status2  & 0x2000) >0 ) { print "Server trust account<br/>" }
+        if ((status2  & 0x10000) >0 ) { print "Password does not expire<br/>" }
+        if ((status2  & 0x20000) >0 ) { print "MNS logon account <br/>" }
+        if ((status2  & 0x40000) >0 ) { print "Smartcard required<br/>" }
+        if ((status2  & 0x80000) >0 ) { print "Trusted for delegation<br/>" }
+        if ((status2  & 0x100000) >0 ) { print "Not delegated<br/>" }
+        if ((status2  & 0x200000) >0 ) { print "Use DES key only<br/>" }
+        if ((status2  & 0x400000) >0 ) { print "Do not require preauth<br/>" }
+        if ((status2  & 0x800000) >0 ) { print "Password expired<br/>" }
+        if ((status2  & 0x1000000) >0 ) { print "Trusted to auth for delegation<br/>" }
+        if ((status2  & 0x04000000) >0 ) { print "Partial secrets account<br/>" }
     }
 }
 
