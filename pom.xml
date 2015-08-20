@@ -16,28 +16,15 @@
         <version>1.10</version>
     </parent>
 
-
-    <dependencies>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.4</version>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
-
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>2.3.7</version>
-                <extensions>true</extensions>
                 <configuration>
                     <instructions>
                         <Tags>inventory,sqlserver,security</Tags>
                         <Author>slava.christin</Author>
-                        <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Import-Package>io.dbmaster.api;version="1.10.0",!org.slf4j.*,io.dbmaster.tools;version="0.1.0"</Import-Package>
                     </instructions>
                 </configuration>
@@ -59,8 +46,6 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-antrun-plugin</artifactId>
          </plugin>
-
-
         </plugins>
     </build>
 
