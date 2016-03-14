@@ -7,6 +7,13 @@
             <parameter name="p_servers"   title="Database Servers"   type="string" required="false" multiple="true"
                        suggestion="project_connections" width="300" />
 
+            <parameter name="p_group_by"   title="Group Results By"   type="string" required="true" defaultValue="Principal">
+                <values>
+                    <string>Principal</string>
+                    <string>Database</string>
+                </values>
+            </parameter>
+
         </parameters>
 
         <output  script="permission-report.groovy" type="html" />

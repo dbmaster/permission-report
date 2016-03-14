@@ -7,7 +7,7 @@
 
     <name>Permission Report</name>
 
-    <version>0.1.0</version>
+    <version>0.1.4</version>
     <packaging>bundle</packaging>
 
     <parent>
@@ -25,7 +25,7 @@
                     <instructions>
                         <Tags>inventory,sqlserver,security</Tags>
                         <Author>slava.christin</Author>
-                        <Import-Package>io.dbmaster.api;version="1.10.0",!org.slf4j.*,io.dbmaster.tools;version="0.1.0"</Import-Package>
+                        <Import-Package>io.dbmaster.api;version="1.10.0",!org.slf4j.*,io.dbmaster.tools;version="0.1.5"</Import-Package>
                     </instructions>
                 </configuration>
             </plugin>

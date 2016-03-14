@@ -11,21 +11,6 @@ def getNotNull(Object o) {
     return o == null? "" : o.toString()
 }
 
-println """<table cellspacing='0' class='simple-table' border='1'>"""
-println """<tr style="background-color:#EEE">"""
-println "<td>Server</td>"
-println "<td>Principal</td>"
-println "<td>Principal Status</td>"
-println "<td>Type</td>"
-println "<td>Server Roles</td>"
-println "<td>Database Permissions</td>"
-println "<td>Account Info</td>"
-println "<td>Members</td>"
-println "</tr>"
-
-def report =new PermissionReport(dbm, logger)
-result = report.getPrincipals(p_servers)
-
 def printMembers (report, account, level ) {
     if (account==null || account.members==null) {
         return
@@ -53,60 +38,159 @@ def printMembers (report, account, level ) {
     }
 }
 
-def printAccountStatus(status) {
-    if (status==null) {
-        return
-    } else {
-        // TODO add descriptions: https://support.microsoft.com/en-us/kb/305144
-        def status2 = Long.parseLong(status)
-        if ((status2  & 0x0001)> 0 )     { print "Script<br/>" }
-        if ((status2  & 0x0002) >0 )     { print "Account disabled<br/>" }
-        if ((status2  & 0x0008) >0 )     { print "Homedir required<br/>" }
-        if ((status2  & 0x0010) >0 )     { print "Lockout<br/>" }
-        if ((status2  & 0x0020) >0 )     { print "Password not required<br/>" }
-        if ((status2  & 0x0040) >0 )     { print "Cannot change password<br/>" }
-        if ((status2  & 0x0080) >0 )     { print "Ecrypted password allowed<br/>" }
-        if ((status2  & 0x1000) >0 )     { print "Temp duplicated account<br/>" }
-        if ((status2  & 0x0200) >0 )     { print "Normal Account<br/>" }
-        if ((status2  & 0x0800) >0 )     { print "Interdomain trust account<br/>" }
-        if ((status2  & 0x1000) >0 )     { print "Workstation trust account<br/>" }
-        if ((status2  & 0x2000) >0 )     { print "Server trust account<br/>" }
-        if ((status2  & 0x10000) >0 )    { print "Password does not expire<br/>" }
-        if ((status2  & 0x20000) >0 )    { print "MNS logon account <br/>" }
-        if ((status2  & 0x40000) >0 )    { print "Smartcard required<br/>" }
-        if ((status2  & 0x80000) >0 )    { print "Trusted for delegation<br/>" }
-        if ((status2  & 0x100000) >0 )   { print "Not delegated<br/>" }
-        if ((status2  & 0x200000) >0 )   { print "Use DES key only<br/>" }
-        if ((status2  & 0x400000) >0 )   { print "Do not require preauth<br/>" }
-        if ((status2  & 0x800000) >0 )   { print "Password expired<br/>" }
-        if ((status2  & 0x1000000) >0 )  { print "Trusted to auth for delegation<br/>" }
-        if ((status2  & 0x04000000) >0 ) { print "Partial secrets account<br/>" }
-    }
-}
+def report = new PermissionReport(dbm, logger)
+def result = report.getPrincipals(p_servers)
 
-result.each { principal ->
-    println "<tr valign=\"top\">"
-    println "<td>${principal.connection_name}</td>"    
-    print "<td>${principal.principal_name}</td>"
-    println "<td>${principal.disabled == null ? "" : (principal.disabled ? "disabled" : "enabled" )}</td>"
-    println "<td>${getNotNull(principal.principal_type)}</td>"
-    println "<td>${principal.server_roles.join("<br/>")}</td>"
-    println "<td>${principal.db_roles.collect { it.db+":"+it.role }.sort { it }.join("<br/>")}</td>"
-    if (principal.ldap_account!=null) {
-    
-        print """<td>Title: ${principal.ldap_account.title}<br/>"""
-        if (principal.ldap_account.accountControl!=null) {
-            println "Account Status:<br/>"
-            printAccountStatus(principal.ldap_account.accountControl)
-        }
+println "<h1>Server-Level Permission</h1>"
+
+println """<table cellspacing="0" class="simple-table" border="1">"""
+println """<tr style="background-color:#EEE">"""
+println "<td>Server</td>"
+println "<td>Principal Name</td>"
+println "<td>Principal Type</td>"
+println "<td>Principal Status</td>" 
+println "<td>Server Roles</td>"
+println "<td>Account Info (AD/LDAP)</td>"
+println "<td>Members</td>"
+println "</tr>"
+
+p_servers.each { serverName ->
+    def serverPrincipals = result["${serverName}_principals"]
+    serverPrincipals.each { principalName, principal ->
+        println "<tr><td>${serverName}</td>"
+        print "<td>${principalName}</td>"        
+        println "<td>${getNotNull(principal.principal_type)}</td>"
+        print "<td>${principal.disabled == null ? "" : (principal.disabled ? "disabled" : "enabled" )}</td>"
+        println "<td>${principal.server_roles.join("<br/>")}</td>"
+        if (principal.ldap_account!=null) {
         
-        println "<td>"
-        printMembers(report, principal.ldap_account, 0)
-        println "</td>"        
-    } else {
-        println "<td></td><td></td>"
+            print """<td>Title: ${principal.ldap_account.title}<br/>"""
+            if (principal.ldap_account.accountControl!=null) {
+                println "Account Status:<br/>"
+                PermissionReport.printAccountStatus(principal.ldap_account.accountControl)
+            }
+            
+            println "<td>"
+            printMembers(report, principal.ldap_account, 0)
+            println "</td>"        
+        } else {
+            println "<td></td><td></td>"
+        }
+        println "</tr>"
     }
-
-    println "</tr>"
 }
 println "</table>"
+
+
+
+
+if (p_group_by=="Principal") {
+/*    
+    println """<table cellspacing="0" class="simple-table" border="1">"""
+    println """<tr style="background-color:#EEE">"""
+    println "<td>Server</td>"
+    println "<td>Principal</td>"
+    println "<td>Principal Status</td>"
+    println "<td>Type</td>"
+    println "<td>Server Roles</td>"
+    println "<td>Database Permissions</td>"
+    println "<td>Account Info</td>"
+    println "<td>Members</td>"
+    println "</tr>"
+
+    
+    result.each { principal ->
+        println "<tr valign=\"top\">"
+        println "<td>${principal.connection_name}</td>"    
+        print "<td>${principal.principal_name}</td>"
+        println "<td>${principal.disabled == null ? "" : (principal.disabled ? "disabled" : "enabled" )}</td>"
+        println "<td>${getNotNull(principal.principal_type)}</td>"
+        println "<td>${principal.server_roles.join("<br/>")}</td>"
+        println "<td>${principal.db_roles.collect { it.db+":"+it.role }.sort { it }.join("<br/>")}</td>"
+        if (principal.ldap_account!=null) {
+        
+            print """<td>Title: ${principal.ldap_account.title}<br/>"""
+            if (principal.ldap_account.accountControl!=null) {
+                println "Account Status:<br/>"
+                PermissionReport.printAccountStatus(principal.ldap_account.accountControl)
+            }
+            
+            println "<td>"
+            printMembers(report, principal.ldap_account, 0)
+            println "</td>"        
+        } else {
+            println "<td></td><td></td>"
+        }
+        println "</tr>"
+    }
+    println "</table>"    
+ */     
+} else if (p_group_by=="Database") {
+ 
+    println "<h1>Database Permission</h1>"
+    println """<table cellspacing="0" class="simple-table" border="1">"""
+    println """<tr style="background-color:#EEE">"""
+    println "<td>Server</td>"
+    println "<td>Database</td>"
+    println "<td>Database User</td>"
+    println "<td>Server Principal</td>"
+    println "<td>Principal Type</td>"
+    println "<td>Principal Status</td>" 
+    println "<td>Database Permissions</td>"
+    println "<td>Account Info</td>"
+    println "<td>Members</td>"
+    println "</tr>"
+    
+    p_servers.each { serverName ->
+        def databases = result["${serverName}_db"]
+        def serverPrincipals = result["${serverName}_principals"]
+        
+        databases.each { dbName, dbPrincipalList ->
+            dbPrincipalList.each { dbUserName, dbPrincipal ->
+                print "<tr><td>${serverName}</td><td>${dbName}</td>"
+                print "<td>${dbPrincipal.db_principal_name}</td>"
+                if (dbPrincipal.server_principal_name == null) {
+                    print "<td>ORPHANED</td>"
+                } else {
+                    print "<td>${dbPrincipal.server_principal_name}</td>"
+                }
+                
+                print "<td>${getNotNull(dbPrincipal.principal_type)}</td>"                
+                def srvPrincipal =  serverPrincipals[dbPrincipal.server_principal_name]
+                if (srvPrincipal!=null) {
+                    print "<td>${srvPrincipal.disabled == null ? "" : (srvPrincipal.disabled ? "disabled" : "enabled" )}</td>"
+                } else {
+                    print "<td></td>"
+                }
+                print "<td>${dbPrincipal.db_roles.join("<br/>")}"
+                if (dbPrincipal.db_permissions.size()>0) {
+                    print "<br/><br/>Permissions: <br/>"
+                    print dbPrincipal.db_permissions.join("<br/>")
+                }
+                print "</td>"
+
+                if (srvPrincipal!=null && srvPrincipal.ldap_account!=null) {
+                
+                    print """<td>Title: ${srvPrincipal.ldap_account.title}<br/>"""
+                    if (srvPrincipal.ldap_account.accountControl!=null) {
+                        println "Account Status:<br/>"
+                        PermissionReport.printAccountStatus(srvPrincipal.ldap_account.accountControl)
+                    }
+                    
+                    println "<td>"
+                    printMembers(report, srvPrincipal.ldap_account, 0)
+                    println "</td>"        
+                } else {
+                    println "<td></td><td></td>"
+                }
+                println "</tr>"
+            }
+        }
+    }
+   
+    
+    
+    println "</table>"
+} else {
+    logger.error("Unexpected group by parameter value ${p_group_by}")
+}

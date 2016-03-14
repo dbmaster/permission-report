@@ -1,0 +1,14 @@
+CREATE PROCEDURE sp_test
+AS
+BEGIN
+    -- Insert statements for procedure here
+	SELECT 1
+END
+
+
+GRANT EXECUTE TO [monitor]
+GRANT EXECUTE ON sp_test TO [monitor]
+
+GRANT SELECT ON dbo.alert TO monitor;
+
+sp_change_users_login @Action='Report';
