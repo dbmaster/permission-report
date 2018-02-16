@@ -41,18 +41,28 @@ def printMembers (report, account, level ) {
 def report = new PermissionReport(dbm, logger)
 def result = report.getPrincipals(p_servers)
 
+println """<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js" defer></script>"""
+println """<script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.0.3/jquery.floatThead.min.js" defer></script>"""
+def inlineScriptBase64 = """
+\$(function(){
+   \$('body table.simple-table').floatThead();
+});
+""".bytes.encodeBase64();
+println """<script src="data:text/javascript;base64,${inlineScriptBase64}" defer></script>"""
+
+
 println "<h1>Server-Level Permission</h1>"
 
 println """<table cellspacing="0" class="simple-table" border="1">"""
-println """<tr style="background-color:#EEE">"""
-println "<td>Server</td>"
-println "<td>Principal Name</td>"
-println "<td>Principal Type</td>"
-println "<td>Principal Status</td>" 
-println "<td>Server Roles</td>"
-println "<td>Account Info (AD/LDAP)</td>"
-println "<td>Members</td>"
-println "</tr>"
+println """<thead><tr style="background-color:#EEE">"""
+println "<th>Server</th>"
+println "<th>Principal Name</th>"
+println "<th>Principal Type</th>"
+println "<th>Principal Status</th>" 
+println "<th>Server Roles</th>"
+println "<th>Account Info (AD/LDAP)</th>"
+println "<th>Members</th>"
+println "</tr></thead><tbody>"
 
 p_servers.each { serverName ->
     def serverPrincipals = result["${serverName}_principals"]
@@ -79,7 +89,7 @@ p_servers.each { serverName ->
         println "</tr>"
     }
 }
-println "</table>"
+println "</tbody></table>"
 
 
 
