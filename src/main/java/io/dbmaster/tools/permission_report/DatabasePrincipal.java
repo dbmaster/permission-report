@@ -8,6 +8,8 @@ import java.util.HashSet;
 public class DatabasePrincipal implements java.io.Serializable {
     int principal_id;
     
+    String sid;
+    
     String db_principal_name;
 
     String server_principal_name;
@@ -17,4 +19,6 @@ public class DatabasePrincipal implements java.io.Serializable {
     Set<String> db_roles       = new HashSet<String>();
     
     Set<String> db_permissions = new HashSet<String>();
+
+    Set<String> members        = new HashSet<String>();
 }

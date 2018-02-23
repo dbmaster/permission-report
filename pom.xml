@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>permission-report</artifactId>
     <name>Permission Report</name>
-    <version>0.1.11</version>
+    <version>0.1.16</version>
     <packaging>bundle</packaging>
 
     <parent>

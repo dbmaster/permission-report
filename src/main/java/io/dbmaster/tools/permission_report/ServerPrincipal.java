@@ -8,6 +8,8 @@ import java.util.HashSet;
 public class ServerPrincipal implements java.io.Serializable {
     int principal_id;
 
+    String sid;
+    
     String principal_name;
 
     String principal_type;

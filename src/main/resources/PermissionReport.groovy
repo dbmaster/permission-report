@@ -41,7 +41,7 @@ public class PermissionReport {
         this.ldap = new LdapUserCache(dbm, logger)
     }
      
-    private Map getDatabasePermissions(connection, serverPrincipals) {
+    private Map getDatabasePermissions(connection) {
         Map result = [:]
         
         def sql = new Sql(connection)
@@ -51,56 +51,75 @@ public class PermissionReport {
         def dbs = sql.rows(query).collect { it.name }
         dbs.each { dbName ->
             def dbPrincipals = [:]
-            query = """USE [${dbName}];                     
-                     SELECT dp.principal_id,
+
+            logger.debug("Processing database ${dbName}")
+            query = """
+                    use [${dbName}];
+                    select 
+                        dp.principal_id,
+                        convert(varchar(100), dp.sid,1) as sid,
                             dp.name,
                             dp.type,
                             dp.type_desc,
-                            SUSER_SNAME(dp.sid) as server_name
-                     FROM sys.database_principals dp  
-                     -- left join sys.server_principals sp on dp.sid=sp.sid
-                     WHERE dp.type<>'R' -- role
-                       AND dp.name NOT IN ('guest','INFORMATION_SCHEMA','sys','MS_DataCollectorInternalUser')"""
-            
+                        sp.name as server_principal_name
+                        -- suser_sname(dp.sid) as server_principal_name
+                    from sys.database_principals dp
+                        left join sys.server_principals sp on dp.sid = sp.sid
+            """
             logger.debug("Executing "+query)    
             
             sql.eachRow(query.toString()) { row ->
                 def principal = new DatabasePrincipal()
                 principal.principal_id = row.principal_id
                 principal.db_principal_name = row.name
-                principal.server_principal_name = row.server_name
+                principal.server_principal_name = row.server_principal_name
                 principal.principal_type = row.type_desc
+                principal.sid = row.sid
                 
                 dbPrincipals [ row.name ] = principal
             }
             result[dbName] = dbPrincipals
             
-            query = """WITH role_members AS (
-                        SELECT rp.name root_role, 
+            query = """
+                with role_members as (
+                    select 
+                        rp.name root_role, 
                                rm.role_principal_id, 
                                rp.name, 
                                rm.member_principal_id,
                                mp.name as member_name, 
+                        mp.type_desc as member_type,
                                mp.sid, 
                                1 as depth  
-                        FROM sys.database_role_members rm
-                        INNER JOIN sys.database_principals rp on rp.principal_id = rm.role_principal_id
-                        INNER JOIN sys.database_principals mp on mp.principal_id = rm.member_principal_id
+                    from sys.database_role_members rm
+                        inner join sys.database_principals rp on rp.principal_id = rm.role_principal_id
+                        inner join sys.database_principals mp on mp.principal_id = rm.member_principal_id
 
-                        UNION ALL
+                    union all
 
-                        SELECT cte.root_role, 
+                    select
+                        cte.root_role, 
                                cte.member_principal_id, 
                                cte.member_name, 
                                rm.member_principal_id,
                                mp.name as member_name, 
+                        mp.type_desc,
                                mp.sid, 
                                cte.depth +1
-                        FROM sys.database_role_members rm
-                        INNER JOIN sys.database_principals mp on mp.principal_id = rm.member_principal_id
-                        INNER JOIN role_members cte on cte.member_principal_id = rm.role_principal_id
-                       )				
-                       SELECT DISTINCT member_name, root_role as role_name from role_members rm"""
+                    from sys.database_role_members rm
+                        inner join sys.database_principals mp on mp.principal_id = rm.member_principal_id
+                        inner join role_members cte on cte.member_principal_id = rm.role_principal_id
+                       )                
+                select distinct 
+                    root_role as role_name,
+                    member_name,
+                    member_type
+                from
+                    role_members rm
+                order by
+                    root_role,
+                    member_name
+         """
             
             sql.eachRow(query.toString()) { row ->
                 def principal = dbPrincipals[row.member_name]
@@ -109,10 +128,16 @@ public class PermissionReport {
                 } else {
                     principal.db_roles.add(row.role_name)
                 }
+
+                principal = dbPrincipals[row.role_name]
+                if (principal==null) {
+                    logger.warn("Principal for name ${row.role_name} not found")
+                } else {
+                    principal.members.add(row.member_name)
+                }
             }
             
             query = """
-            
                SELECT CASE WHEN P.state_desc = 'GRANT_WITH_GRANT_OPTION' 
                       THEN 'GRANT' 
                       ELSE P.state_desc END AS cmd_state,
@@ -174,7 +199,7 @@ public class PermissionReport {
                   LEFT JOIN sys.symmetric_keys AS SK ON P.major_id = SK.symmetric_key_id
                   JOIN sys.database_principals AS DP ON P.grantee_principal_id = DP.principal_id
                   JOIN sys.database_principals AS G ON P.grantor_principal_id = G.principal_id
-                where   p.permission_name<>'CONNECT' and DP.name <>'public'"""
+                  WHERE P.permission_name<>'CONNECT' and DP.name <>'public'"""
 
             sql.eachRow(query.toString()) { row ->
                 def principal = dbPrincipals[row.grantee]
@@ -191,21 +216,30 @@ public class PermissionReport {
         return result
     }
     
-    // returns server principals and their server roles (recursevely)
+    // returns server principals and their server roles (recursively)
     private Map<String, ServerPrincipal> getServerPrincipals(connection) {
         def serverPrincipals = [:]
         
         logger.info("Getting server principal list")
                 
-        new Sql(connection).eachRow("""SELECT principal_id, name, type_desc, is_disabled
-                                       FROM sys.server_principals 
-                                       WHERE type_desc IN ('SQL_LOGIN','WINDOWS_LOGIN','WINDOWS_GROUP')
-                                       ORDER BY name""")
+        new Sql(connection).eachRow("""
+                select
+                    convert(varchar(100), sid, 1) as sid,
+                    principal_id,
+                    name,
+                    type_desc,
+                    is_disabled
+                from
+                    sys.server_principals
+                where
+                    type_desc in ('SQL_LOGIN','WINDOWS_LOGIN','WINDOWS_GROUP')
+                order by
+                    name""")
         { row ->
             def principal = new ServerPrincipal()
             
             logger.info("User ${row.name} is disabled: ${row.is_disabled}")
-            
+            principal.sid = row.sid; // convertSidToStringSid(row.sid)
             principal.principal_name     = row.name
             if (row.is_disabled instanceof Boolean) {
                 principal.disabled = row.is_disabled
@@ -215,63 +249,51 @@ public class PermissionReport {
             principal.principal_type     = row.type_desc
             principal.principal_id       = row.principal_id
             
-            // result << principal
-            serverPrincipals[principal.principal_name] = principal
+            serverPrincipals[principal.sid] = principal
             
-            if (principal.principal_type.equals("WINDOWS_GROUP") ||
-                principal.principal_type.equals("WINDOWS_LOGIN"))
-            {
-                def parts = principal.principal_name.split("\\\\", 2)
-                if (parts.length==2) {
-                    def domain = parts[0]
-                    def username = parts[1]
-                    logger.debug("Domain=${domain} user=${username}")
-                    
-                    // NT AUTHORITY
-                    // NT SERVICE
-                    
-                    def ldap_account = ldap.ldapAccountByName[principal.principal_name]
-                    if (ldap_account==null) {
-                        logger.debug("Principal name '${principal.principal_name}' not found");
-                    }
-                    principal.ldap_account = ldap_account
-                }
-            }
+            principal.ldap_account = getLdapAccount(principal.principal_type, principal.principal_name);
         }
         
-        // Include Roles
+        // Include Server Level Roles
         def query = """
-            WITH role_members AS (
-                SELECT rp.name root_role, 
+            with role_members as (
+                select rp.name root_role, 
                        rm.role_principal_id, 
                        rp.name, 
                        rm.member_principal_id,
                        mp.name as member_name, 
                        mp.sid, 
                        1 as depth  
-                FROM sys.server_role_members rm
-                INNER JOIN sys.server_principals rp on rp.principal_id = rm.role_principal_id
-                INNER JOIN sys.server_principals mp on mp.principal_id = rm.member_principal_id
+                from sys.server_role_members rm
+                inner join sys.server_principals rp on rp.principal_id = rm.role_principal_id
+                inner join sys.server_principals mp on mp.principal_id = rm.member_principal_id
 
-                UNION ALL
+                union all
 
-                SELECT cte.root_role, 
+                select cte.root_role, 
                        cte.member_principal_id,
                        cte.member_name, 
                        rm.member_principal_id,
                        mp.name as member_name, 
                        mp.sid, 
                        cte.depth +1
-                FROM sys.server_role_members rm
-                INNER JOIN sys.server_principals mp on mp.principal_id = rm.member_principal_id
-                INNER JOIN role_members cte on cte.member_principal_id = rm.role_principal_id
+                from sys.server_role_members rm
+                inner join sys.server_principals mp on mp.principal_id = rm.member_principal_id
+                inner join role_members cte on cte.member_principal_id = rm.role_principal_id
             )
-            SELECT distinct member_principal_id, member_name, root_role FROM role_members"""
+            select distinct 
+                member_principal_id, 
+                member_name,
+                convert(varchar(100),sid,1) as member_sid, 
+                root_role 
+            from
+                role_members
+        """
             
         new Sql(connection).eachRow(query) { row ->
-            def principal = serverPrincipals[row.member_name]
+            def principal = serverPrincipals[row.member_sid]
             if (principal==null) {
-                logger.warn("Server principal with name ${row.member_name} not found")
+                logger.warn("Server principal with sid ${row.member_sid} and name ${row.member_name} not found")
             } else {
                 principal.server_roles.add(row.root_role)
             }
@@ -280,9 +302,27 @@ public class PermissionReport {
         return serverPrincipals
     }
     
+    public Object getLdapAccount(String type, String name) {
+        if (type in ["WINDOWS_GROUP", "WINDOWS_LOGIN", "WINDOWS_USER"])
+        {
+            def parts = name.split("\\\\", 2)
+            if (parts.length==2) {
+                def domain = parts[0]
+                def username = parts[1]
+                
+                if (!(domain in ["NT SERVICE", "NT AUTHORITY"])) {
+                    def ldap_account = ldap.ldapAccountByName[name]
+                    if (ldap_account==null) {
+                        logger.debug("Principal name '${name}' not found");
+                    }
+                    return ldap_account
+                }
+            }
+        }
+        return null
+    }
+    
     public Map getPrincipals(String[] servers) {
-        // Map<String connection, Map<String principal : Principal Info>>
-        // Map<String connection, Map<String database  : 
         def result = [:]
 
         def connectionSrv = dbm.getService(ConnectionService.class)
@@ -295,7 +335,6 @@ public class PermissionReport {
         } else {
             dbConnections = connectionSrv.getConnectionList()
         }
-
 
         dbConnections.each { connectionInfo ->
             try {
@@ -315,7 +354,7 @@ public class PermissionReport {
                 def principals = getServerPrincipals(connection)
                 result["${serverName}_principals"]  = principals
 
-                result["${serverName}_db"]  = getDatabasePermissions(connection, principals)
+                result["${serverName}_db"]  = getDatabasePermissions(connection)
 
                 // if (Thread.interrupted()) {
                 //    throw new CancellationException();
@@ -325,42 +364,41 @@ public class PermissionReport {
                 throw e;
             } catch (Exception e) {
                 def msg = "Error occurred "+e.getMessage()
-                org.slf4j.LoggerFactory.getLogger(this.getClass()).error(msg,e)
                 logger.error(msg, e)
             }
         }
         return result
     }
     
-    // TODO: convert result to a set of Strings
-    public static void printAccountStatus(status) {
-        if (status==null) {
-            return
-        } else {
+    public static Collection<String> explainAccountStatus(String status) {
+        def result = []
+        if (status!=null) {
             // TODO add descriptions: https://support.microsoft.com/en-us/kb/305144
             def status2 = Long.parseLong(status)
-            if ((status2  & 0x0001)> 0 )     { print "Script<br/>" }
-            if ((status2  & 0x0002) >0 )     { print "Account disabled<br/>" }
-            if ((status2  & 0x0008) >0 )     { print "Homedir required<br/>" }
-            if ((status2  & 0x0010) >0 )     { print "Lockout<br/>" }
-            if ((status2  & 0x0020) >0 )     { print "Password not required<br/>" }
-            if ((status2  & 0x0040) >0 )     { print "Cannot change password<br/>" }
-            if ((status2  & 0x0080) >0 )     { print "Ecrypted password allowed<br/>" }
-            if ((status2  & 0x1000) >0 )     { print "Temp duplicated account<br/>" }
-            if ((status2  & 0x0200) >0 )     { print "Normal Account<br/>" }
-            if ((status2  & 0x0800) >0 )     { print "Interdomain trust account<br/>" }
-            if ((status2  & 0x1000) >0 )     { print "Workstation trust account<br/>" }
-            if ((status2  & 0x2000) >0 )     { print "Server trust account<br/>" }
-            if ((status2  & 0x10000) >0 )    { print "Password does not expire<br/>" }
-            if ((status2  & 0x20000) >0 )    { print "MNS logon account <br/>" }
-            if ((status2  & 0x40000) >0 )    { print "Smartcard required<br/>" }
-            if ((status2  & 0x80000) >0 )    { print "Trusted for delegation<br/>" }
-            if ((status2  & 0x100000) >0 )   { print "Not delegated<br/>" }
-            if ((status2  & 0x200000) >0 )   { print "Use DES key only<br/>" }
-            if ((status2  & 0x400000) >0 )   { print "Do not require preauth<br/>" }
-            if ((status2  & 0x800000) >0 )   { print "Password expired<br/>" }
-            if ((status2  & 0x1000000) >0 )  { print "Trusted to auth for delegation<br/>" }
-            if ((status2  & 0x04000000) >0 ) { print "Partial secrets account<br/>" }
+            if ((status2  & 0x0001)> 0 )     { result.add("Script") }
+            if ((status2  & 0x0002) >0 )     { result.add("Account disabled") }
+            if ((status2  & 0x0008) >0 )     { result.add("Homedir required") }
+            if ((status2  & 0x0010) >0 )     { result.add("Lockout") }
+            if ((status2  & 0x0020) >0 )     { result.add("Password not required") }
+            if ((status2  & 0x0040) >0 )     { result.add("Cannot change password") }
+            if ((status2  & 0x0080) >0 )     { result.add("Ecrypted password allowed") }
+            if ((status2  & 0x1000) >0 )     { result.add("Temp duplicated account") }
+            if ((status2  & 0x0200) >0 )     { result.add("Normal Account") }
+            if ((status2  & 0x0800) >0 )     { result.add("Interdomain trust account") }
+            if ((status2  & 0x1000) >0 )     { result.add("Workstation trust account") }
+            if ((status2  & 0x2000) >0 )     { result.add("Server trust account") }
+            if ((status2  & 0x10000) >0 )    { result.add("Password does not expire") }
+            if ((status2  & 0x20000) >0 )    { result.add("MNS logon account ") }
+            if ((status2  & 0x40000) >0 )    { result.add("Smartcard required") }
+            if ((status2  & 0x80000) >0 )    { result.add("Trusted for delegation") }
+            if ((status2  & 0x100000) >0 )   { result.add("Not delegated") }
+            if ((status2  & 0x200000) >0 )   { result.add("Use DES key only") }
+            if ((status2  & 0x400000) >0 )   { result.add("Do not require preauth") }
+            if ((status2  & 0x800000) >0 )   { result.add("Password expired") }
+            if ((status2  & 0x1000000) >0 )  { result.add("Trusted to auth for delegation") }
+            if ((status2  & 0x04000000) >0 ) { result.add("Partial secrets account") }
         }
+        return result
     }
+    
 }

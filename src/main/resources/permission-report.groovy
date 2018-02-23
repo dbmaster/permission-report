@@ -66,9 +66,9 @@ println "</tr></thead><tbody>"
 
 p_servers.each { serverName ->
     def serverPrincipals = result["${serverName}_principals"]
-    serverPrincipals.each { principalName, principal ->
+    serverPrincipals.each { sid, principal ->
         println "<tr><td>${serverName}</td>"
-        print "<td>${principalName}</td>"        
+        print "<td>${principal.principal_name}</td>"        
         println "<td>${getNotNull(principal.principal_type)}</td>"
         print "<td>${principal.disabled == null ? "" : (principal.disabled ? "disabled" : "enabled" )}</td>"
         println "<td>${principal.server_roles.join("<br/>")}</td>"
@@ -77,7 +77,7 @@ p_servers.each { serverName ->
             print """<td>Title: ${principal.ldap_account.title}<br/>"""
             if (principal.ldap_account.accountControl!=null) {
                 println "Account Status:<br/>"
-                PermissionReport.printAccountStatus(principal.ldap_account.accountControl)
+                println PermissionReport.explainAccountStatus(principal.ldap_account.accountControl).join("<br/>")
             }
             
             println "<td>"
@@ -122,7 +122,7 @@ if (p_group_by=="Principal") {
             print """<td>Title: ${principal.ldap_account.title}<br/>"""
             if (principal.ldap_account.accountControl!=null) {
                 println "Account Status:<br/>"
-                PermissionReport.printAccountStatus(principal.ldap_account.accountControl)
+                println PermissionReport.explainAccountStatus(principal.ldap_account.accountControl).join("<br/>")
             }
             
             println "<td>"
@@ -139,56 +139,75 @@ if (p_group_by=="Principal") {
  
     println "<h1>Database Permission</h1>"
     println """<table cellspacing="0" class="simple-table" border="1">"""
-    println """<tr style="background-color:#EEE">"""
-    println "<td>Server</td>"
-    println "<td>Database</td>"
-    println "<td>Database User</td>"
-    println "<td>Server Principal</td>"
-    println "<td>Principal Type</td>"
-    println "<td>Principal Status</td>" 
-    println "<td>Database Permissions</td>"
-    println "<td>Account Info</td>"
-    println "<td>Members</td>"
-    println "</tr>"
+    println """<thead><tr style="background-color:#EEE">"""
+    println "<th>Server</th>"
+    println "<th>Database</th>"
+    println "<th>Database User</th>"
+    println "<th>Server Principal</th>"
+    println "<th>Principal Type</th>"
+    println "<th>Principal Status</th>" 
+    println "<th>Database Permissions</th>"
+    println "<th>Account Info</th>"
+    println "<th>Members</th>"
+    println "</tr></thead><tbody>"
     
     p_servers.each { serverName ->
         def databases = result["${serverName}_db"]
         def serverPrincipals = result["${serverName}_principals"]
         
         databases.each { dbName, dbPrincipalList ->
-            dbPrincipalList.each { dbUserName, dbPrincipal ->
+            dbPrincipalList.sort { a, b -> a.key.toLowerCase() <=> b.key.toLowerCase() }.each { dbUserName, dbPrincipal ->
                 print "<tr><td>${serverName}</td><td>${dbName}</td>"
                 print "<td>${dbPrincipal.db_principal_name}</td>"
-                if (dbPrincipal.server_principal_name == null) {
-                    print "<td>ORPHANED</td>"
+
+                if (dbPrincipal.principal_type in ["DATABASE_ROLE"]) {
+                    print "<td></td>"
+                } else if (dbPrincipal.server_principal_name == null) {
+                    if (dbPrincipal.db_principal_name in ["dbo","guest","INFORMATION_SCHEMA","sys"]) {
+                        print "<td></td>"                       
+                    } else if (dbPrincipal.principal_type in ["WINDOWS_USER", "WINDOWS_GROUP"]) {
+                        print "<td>[missing]</td>"
+                    } else {
+                        print "<td>[orphaned]</td>"
+                    }
                 } else {
                     print "<td>${dbPrincipal.server_principal_name}</td>"
                 }
                 
                 print "<td>${getNotNull(dbPrincipal.principal_type)}</td>"                
-                def srvPrincipal =  serverPrincipals[dbPrincipal.server_principal_name]
+                def srvPrincipal =  serverPrincipals[dbPrincipal.sid]
                 if (srvPrincipal!=null) {
                     print "<td>${srvPrincipal.disabled == null ? "" : (srvPrincipal.disabled ? "disabled" : "enabled" )}</td>"
                 } else {
                     print "<td></td>"
                 }
-                print "<td>${dbPrincipal.db_roles.join("<br/>")}"
+                print "<td>"
+                if (!dbPrincipal.db_roles.isEmpty()) {
+                    print "Roles:<br/>"
+                    print dbPrincipal.db_roles.join("<br/>")
+                    println "<br/><br/>"
+                }
                 if (dbPrincipal.db_permissions.size()>0) {
-                    print "<br/><br/>Permissions: <br/>"
+                    print "Permissions:<br/>"
                     print dbPrincipal.db_permissions.join("<br/>")
                 }
                 print "</td>"
 
-                if (srvPrincipal!=null && srvPrincipal.ldap_account!=null) {
+                def ldap_account = report.getLdapAccount(dbPrincipal.principal_type, dbPrincipal.db_principal_name);
                 
-                    print """<td>Title: ${srvPrincipal.ldap_account.title}<br/>"""
-                    if (srvPrincipal.ldap_account.accountControl!=null) {
+                if (ldap_account!=null) {                   
+                    print """<td>Title: ${ldap_account.title}<br/>"""
+                    if (ldap_account.accountControl!=null) {
                         println "Account Status:<br/>"
-                        PermissionReport.printAccountStatus(srvPrincipal.ldap_account.accountControl)
+                        println PermissionReport.explainAccountStatus(ldap_account.accountControl).join("<br/>")
                     }
-                    
+                    println "</td><td>"
+                    printMembers(report, ldap_account, 0)
+                    println "</td>"        
+                } else if (dbPrincipal.principal_type.equals("DATABASE_ROLE")) {
+                    println "<td></td>"
                     println "<td>"
-                    printMembers(report, srvPrincipal.ldap_account, 0)
+                    dbPrincipal.members.each { memberName -> println memberName + "<br/>" } 
                     println "</td>"        
                 } else {
                     println "<td></td><td></td>"
@@ -197,10 +216,7 @@ if (p_group_by=="Principal") {
             }
         }
     }
-   
-    
-    
-    println "</table>"
+    println "</tbody></table>"
 } else {
     logger.error("Unexpected group by parameter value ${p_group_by}")
 }

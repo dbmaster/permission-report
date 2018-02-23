@@ -14,6 +14,15 @@
                 </values>
             </parameter>
 
+<!--
+            <parameter name="p_options"  title="Options"  type="string" required="true" multiple="true" defaultValue="Show members,Show permissions">
+                <values>
+                    <string>Show members</string>
+                    <string>Show permissions</string>
+                </values>
+            </parameter>
+-->
+
         </parameters>
 
         <output  script="permission-report.groovy" type="html" />
