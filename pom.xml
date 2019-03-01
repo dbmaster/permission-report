@@ -4,13 +4,13 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>permission-report</artifactId>
     <name>Permission Report</name>
-    <version>0.1.16</version>
+    <version>0.1.17</version>
     <packaging>bundle</packaging>
 
     <parent>
-        <groupId>io.dbmaster.tools</groupId>
-        <artifactId>dbmaster-root</artifactId>
-        <version>1.11.3</version>
+         <groupId>io.dbmaster.plugins</groupId>
+         <artifactId>dbmaster-plugin-parent</artifactId>
+         <version>1.12.1</version>
     </parent>
 
     <build>
@@ -22,7 +22,7 @@
                     <instructions>
                         <Tags>inventory,sqlserver,security</Tags>
                         <Author>slava.christin</Author>
-                        <Import-Package>io.dbmaster.api;version="1.10.0",!org.slf4j.*,io.dbmaster.tools;version="0.1.5"</Import-Package>
+                        <Import-Package>io.dbmaster.api;version="1.12.0",!org.slf4j.*,io.dbmaster.tools;version="0.1.5"</Import-Package>
                     </instructions>
                 </configuration>
             </plugin>

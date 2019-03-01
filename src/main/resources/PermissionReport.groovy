@@ -11,7 +11,7 @@ import java.util.concurrent.CancellationException
 import org.slf4j.Logger
 
 import com.branegy.dbmaster.connection.ConnectionProvider
-import com.branegy.dbmaster.connection.JdbcConnector
+import com.branegy.dbmaster.connection.JdbcDialect
 import com.branegy.dbmaster.custom.CustomFieldConfig
 import com.branegy.dbmaster.custom.CustomObjectEntity
 import com.branegy.dbmaster.custom.CustomObjectService
@@ -337,19 +337,19 @@ public class PermissionReport {
         }
 
         dbConnections.each { connectionInfo ->
+            def serverName = connectionInfo.getName()
+            def dialect = null;
             try {
-                def serverName = connectionInfo.getName()
-                def connector = ConnectionProvider.getConnector(connectionInfo)
-                if (!(connector instanceof JdbcConnector)) {
+                dialect = ConnectionProvider.get().getDialect(connectionInfo)
+                if (!(dialect instanceof JdbcDialect)) {
                     logger.info("Skipping checks for connection ${serverName} as it is not a database one")
                     return
                 } else {
                     logger.info("Connecting to ${serverName}")
                 }
 
-                Connection connection = connector.getJdbcConnection(null)
-                dbm.closeResourceOnExit(connection)
-            
+                Connection connection = dialect.getConnection()
+                
                 // principal list (sql users, windows users, windows groups)
                 def principals = getServerPrincipals(connection)
                 result["${serverName}_principals"]  = principals
@@ -359,12 +359,13 @@ public class PermissionReport {
                 // if (Thread.interrupted()) {
                 //    throw new CancellationException();
                 // }
-                connection.close()
             } catch (CancellationException e) {
                 throw e;
             } catch (Exception e) {
                 def msg = "Error occurred "+e.getMessage()
                 logger.error(msg, e)
+            } finally {
+                dialect?.close();
             }
         }
         return result
