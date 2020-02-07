@@ -28,4 +28,14 @@
         <output  script="permission-report.groovy" type="html" />
     </tool>
 
+    <tool id="obsolete-principals-report" title="Obsolete Principals Report" projectTypes="inventory">
+        <description></description>
+
+        <parameters>
+            <parameter name="p_connection_query"   title="Connection Query"   type="string" required="false" width="300" />
+        </parameters>
+
+        <output  script="obsolete-principals.groovy" type="html" />
+    </tool>
+
 </tools>
